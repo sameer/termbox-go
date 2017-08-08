@@ -154,45 +154,38 @@ func Flush() error {
 	lasty = coord_invalid
 
 	update_size_maybe()
+	for i := 0; i < front_buffer.width*front_buffer.height; {
+		back := &back_buffer.cells[i]
+		front := &front_buffer.cells[i]
+		if back.Ch < ' ' {
+			back.Ch = ' '
+		}
+		w := runewidth.DefaultCondition.RuneWidth(back.Ch)
+		if w == 0 || w == 2 && runewidth.IsAmbiguousWidth(back.Ch) {
+			w = 1
+		}
+		if *back != *front {
 
-	for y := 0; y < front_buffer.height; y++ {
-		line_offset := y * front_buffer.width
-		for x := 0; x < front_buffer.width; {
-			cell_offset := line_offset + x
-			back := &back_buffer.cells[cell_offset]
-			front := &front_buffer.cells[cell_offset]
-			if back.Ch < ' ' {
-				back.Ch = ' '
-			}
-			w := runewidth.RuneWidth(back.Ch)
-			if w == 0 || w == 2 && runewidth.IsAmbiguousWidth(back.Ch) {
-				w = 1
-			}
-			if *back == *front {
-				x += w
-				continue
-			}
 			*front = *back
+			x, y := i%front_buffer.width, i/front_buffer.width
 			send_attr(back.Fg, back.Bg)
+			if w == 2 {
+				if x == front_buffer.width-1 {
+					// there's not enough space for 2-cells rune,
+					// let's just put a REPLACEMENT CHARACTER there (indicates an unrenderable character)
+					send_char(x, y, '�')
+				} else {
+					send_char(x, y, back.Ch)
+					front_buffer.cells[i+1] = Cell{Ch: 0, Fg: back.Fg, Bg: back.Bg}
 
-			if w == 2 && x == front_buffer.width-1 {
-				// there's not enough space for 2-cells rune,
-				// let's just put a space in there
-				send_char(x, y, ' ')
+				}
 			} else {
 				send_char(x, y, back.Ch)
-				if w == 2 {
-					next := cell_offset + 1
-					front_buffer.cells[next] = Cell{
-						Ch: 0,
-						Fg: back.Fg,
-						Bg: back.Bg,
-					}
-				}
 			}
-			x += w
 		}
+		i += w
 	}
+
 	if !is_cursor_hidden(cursor_x, cursor_y) {
 		write_cursor(cursor_x, cursor_y)
 	}
