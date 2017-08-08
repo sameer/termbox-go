@@ -154,7 +154,7 @@ func Flush() error {
 	lasty = coord_invalid
 
 	update_size_maybe()
-	for i := 0; i < front_buffer.width*front_buffer.height; {
+	for i := 0; i < front_buffer.width*front_buffer.height; i++ {
 		back := &back_buffer.cells[i]
 		front := &front_buffer.cells[i]
 		if back.Ch < ' ' {
@@ -177,13 +177,12 @@ func Flush() error {
 				} else {
 					send_char(x, y, back.Ch)
 					front_buffer.cells[i+1] = Cell{Ch: 0, Fg: back.Fg, Bg: back.Bg}
-
+					i++ // 2 wide incr
 				}
 			} else {
 				send_char(x, y, back.Ch)
 			}
 		}
-		i += w
 	}
 
 	if !is_cursor_hidden(cursor_x, cursor_y) {
