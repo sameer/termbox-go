@@ -160,15 +160,14 @@ func Flush() error {
 		if back.Ch < ' ' {
 			back.Ch = ' '
 		}
-		w := runewidth.DefaultCondition.RuneWidth(back.Ch)
-		if w == 0 || w == 2 && runewidth.IsAmbiguousWidth(back.Ch) {
-			w = 1
-		}
 		if *back != *front {
-
 			*front = *back
 			x, y := i%front_buffer.width, i/front_buffer.width
 			send_attr(back.Fg, back.Bg)
+			w := runewidth.DefaultCondition.RuneWidth(back.Ch)
+			if w == 0 || w == 2 && runewidth.IsAmbiguousWidth(back.Ch) {
+				w = 1
+			}
 			if w == 2 {
 				if x == front_buffer.width-1 {
 					// there's not enough space for 2-cells rune,
